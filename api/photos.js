@@ -1,5 +1,5 @@
 /*
- * API sub-router for businesses collection endpoints.
+ * API sub-router for photos collection endpoints.
  */
 
 const { Router } = require('express')
