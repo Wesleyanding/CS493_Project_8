@@ -34,3 +34,14 @@ services:
       - db
       - db-init
     restart: on-failure
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - 15672:15672
+      - 5672:5672
+    depends_on:
+      - api
+      - db-init
+      - db
+    restart: on-failure

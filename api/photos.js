@@ -2,29 +2,44 @@
  * API sub-router for photos collection endpoints.
  */
 
-const { Router } = require('express')
+const multer = require('multer');
+const { Router } = require('express');
+const path = require('path');
 
 const { validateAgainstSchema } = require('../lib/validation')
+
 const {
   PhotoSchema,
+  removeUpload,
   insertNewPhoto,
-  getPhotoById
+  getPhotoById,
+  checkMimeType,
+  producer,
 } = require('../models/photo')
 
 const router = Router()
 
+const photoUpload = multer({'dest': `${__dirname}/cs493_project8_uploads`})
+
 /*
  * POST /photos - Route to create a new photo.
  */
-router.post('/', async (req, res) => {
-  if (validateAgainstSchema(req.body, PhotoSchema)) {
+router.post('/', photoUpload.single('image'), async (req, res) => {
+  metadata = JSON.parse(req.body.metadata)
+
+  if (validateAgainstSchema(req.body, PhotoSchema) && checkMimeType(req.file)) {
     try {
-      const id = await insertNewPhoto(req.body)
+      const id = await insertNewPhoto(req.body);
+      removeUpload(req.file);
+      await producer(id)
       res.status(201).send({
         id: id,
         links: {
           photo: `/photos/${id}`,
-          business: `/businesses/${req.body.businessId}`
+          thumb: `/media/thumbs/${id}/`,
+          business: `/businesses/${req.body.businessId}`,
+          filename: `${req.file.filename}`,
+          originalFilename: `${req.file.originalname}`
         }
       })
     } catch (err) {
@@ -47,7 +62,12 @@ router.get('/:id', async (req, res, next) => {
   try {
     const photo = await getPhotoById(req.params.id)
     if (photo) {
-      res.status(200).send(photo)
+      res.setHeader('Content-Type', photo.metadata.contentType);
+      const photoResult = {
+        photo: photo,
+        thumb: `/media/thumbs/${req.params.id}.jpg`
+      }
+      res.status(200).send(photoResult)
     } else {
       next()
     }
